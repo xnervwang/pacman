@@ -14,16 +14,45 @@ function FindProxyForURL(url, host) {
         return "DIRECT";
     }
 
-    // --- 规则2：特定域名和所有含 "amazon" 关键字的域名走直连 ---
-
-    // 使用 indexOf 检查是否包含 "amazon" 关键字
-    // 请注意，这种匹配方式可能导致误伤，例如 "notamazon.com" 也会被直连。
-    if (host.indexOf("amazon") !== -1 ||
+    // --- 规则2：特定域名和所有含 "amazon"、".aws" 或 "aws." 关键字的域名走直连 ---
+    // 注意：indexOf 匹配可能导致误伤，例如 "notamazon.com" 也会被直连。
+    // .aws 和 aws. 的匹配是为了覆盖 aws.amazon.com, chime.aws 等域名。
+    if (
+        host.indexOf("amazon") !== -1 ||
+        host.indexOf(".aws") !== -1 || // 包含 .aws (例如 chime.aws)
+        host.indexOf("aws.") !== -1 || // 包含 aws. (例如 aws.amazon.com)
         host === "luum.com" ||
-        host.endsWith(".luum.com") || // 确保 luum.com 及其子域名都直连
+        host.endsWith(".luum.com") ||
         host === "a2z.com" ||
         host.endsWith(".a2z.com")
-       ) {
+    ) {
+        return "DIRECT";
+    }
+
+    // --- 规则3：非 80 和 443 端口的流量走直连 ---
+    // 提取 URL 中的端口号
+    var port = null;
+    var colonIndex = url.lastIndexOf(":");
+    var slashIndex = url.indexOf("/", colonIndex);
+
+    if (colonIndex > -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
+        // 如果有冒号且冒号在斜杠之前（或者没有斜杠），则可能存在端口号
+        if (slashIndex === -1) {
+            port = parseInt(url.substring(colonIndex + 1));
+        } else {
+            port = parseInt(url.substring(colonIndex + 1, slashIndex));
+        }
+    } else {
+        // 如果没有明确的端口号，则使用默认端口
+        if (url.startsWith("https://")) {
+            port = 443;
+        } else {
+            port = 80;
+        }
+    }
+
+    // 如果端口存在且不是 80 或 443，则直连
+    if (port !== null && port !== 80 && port !== 443) {
         return "DIRECT";
     }
 
