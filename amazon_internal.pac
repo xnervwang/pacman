@@ -20,7 +20,9 @@ function FindProxyForURL(url, host) {
     // 请注意，这种匹配方式可能导致误伤，例如 "notamazon.com" 也会被直连。
     if (host.indexOf("amazon") !== -1 ||
         host === "luum.com" ||
-        host.endsWith(".luum.com") // 确保 luum.com 及其子域名都直连
+        host.endsWith(".luum.com") || // 确保 luum.com 及其子域名都直连
+        host === "a2z.com" ||
+        host.endsWith(".a2z.com")
        ) {
         return "DIRECT";
     }
