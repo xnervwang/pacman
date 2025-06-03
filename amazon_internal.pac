@@ -30,6 +30,25 @@ function FindProxyForURL(url, host) {
         return "DIRECT";
     }
 
+    // --- 规则3：非 80 和 443 端口的流量走直连 ---
+    var port = null;
+    var colonIndex = url.lastIndexOf(":");
+    var slashIndex = url.indexOf("/", colonIndex);
+
+    if (colonIndex > -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
+        if (slashIndex === -1) {
+            port = parseInt(url.substring(colonIndex + 1));
+        } else {
+            port = parseInt(url.substring(colonIndex + 1, slashIndex));
+        }
+    } else {
+        port = url.startsWith("https://") ? 443 : 80;
+    }
+
+    if (port !== 80 && port !== 443) {
+        return "DIRECT";
+    }
+
     // --- 默认规则 ---
     return proxy;
 }
