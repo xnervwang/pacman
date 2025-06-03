@@ -32,21 +32,19 @@ function FindProxyForURL(url, host) {
 
     // --- 规则3：非 80 和 443 端口的流量走直连 ---
     var port = null;
-    var colonIndex = url.lastIndexOf(":");
-    var slashIndex = url.indexOf("/", colonIndex);
-
+    // 去掉协议部分
+    var urlNoProtocol = url.replace(/^https?:\/\//i, '');
+    var colonIndex = urlNoProtocol.indexOf(':');
+    var slashIndex = urlNoProtocol.indexOf('/');
+    
     if (colonIndex > -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
         if (slashIndex === -1) {
-            port = parseInt(url.substring(colonIndex + 1));
+            port = parseInt(urlNoProtocol.substring(colonIndex + 1));
         } else {
-            port = parseInt(url.substring(colonIndex + 1, slashIndex));
+            port = parseInt(urlNoProtocol.substring(colonIndex + 1, slashIndex));
         }
     } else {
         port = url.startsWith("https://") ? 443 : 80;
-    }
-
-    if (port !== 80 && port !== 443) {
-        return "DIRECT";
     }
 
     // --- 默认规则 ---
