@@ -2,35 +2,50 @@ function FindProxyForURL(url, host) {
     // 定义 SOCKS5 代理服务器地址
     var proxy = "SOCKS5 127.0.0.1:8384";
 
-    // --- 规则1：所有内网 IP 走直连 ---
-    if (
-        host === "127.0.0.1" ||
-        isInNet(host, "10.0.0.0", "255.0.0.0") ||
-        isInNet(host, "172.16.0.0", "255.240.0.0") ||
-        isInNet(host, "192.168.0.0", "255.255.0.0") ||
-        isInNet(host, "169.254.0.0", "255.255.0.0") ||
-        isInNet(host, "127.0.0.0", "255.0.0.0")
-    ) {
-        return "DIRECT";
+    // --- 内网 IP 网段 ---
+    var localNets = [
+        ["10.0.0.0", "255.0.0.0"],
+        ["172.16.0.0", "255.240.0.0"],
+        ["192.168.0.0", "255.255.0.0"],
+        ["169.254.0.0", "255.255.0.0"],
+        ["127.0.0.0", "255.0.0.0"]
+    ];
+
+    // 判断是否为内网地址
+    if (host === "127.0.0.1") return "DIRECT";
+    for (var i = 0; i < localNets.length; i++) {
+        if (isInNet(host, localNets[i][0], localNets[i][1])) {
+            return "DIRECT";
+        }
     }
 
-    // --- 规则2：特定域名及包含关键字的域名走直连 ---
-    if (
-        host.indexOf("amazon") !== -1 ||
-        host.indexOf(".aws") !== -1 ||
-        host.indexOf("aws.") !== -1 ||
-        host.indexOf("slack") !== -1 ||
-        host.indexOf("chime") !== -1 ||
+    // --- 域名关键词或特定域名 ---
+    var keywordList = ["amazon", ".aws", "aws.", "slack", "chime"];
+    var exactDomains = ["luum.com", "a2z.com"];
+    var suffixDomains = [".luum.com", ".a2z.com"];
 
-        host === "luum.com" ||
-        host.endsWith(".luum.com") ||
-        host === "a2z.com" ||
-        host.endsWith(".a2z.com")
-    ) {
-        return "DIRECT";
+    // 关键词匹配
+    for (var j = 0; j < keywordList.length; j++) {
+        if (host.indexOf(keywordList[j]) !== -1) {
+            return "DIRECT";
+        }
     }
 
-    // --- 规则3：非 80 和 443 端口的流量走直连 ---
+    // 完全匹配
+    for (var k = 0; k < exactDomains.length; k++) {
+        if (host === exactDomains[k]) {
+            return "DIRECT";
+        }
+    }
+
+    // 后缀匹配
+    for (var l = 0; l < suffixDomains.length; l++) {
+        if (host.endsWith(suffixDomains[l])) {
+            return "DIRECT";
+        }
+    }
+
+    // --- 非 80 和 443 端口的流量走直连 ---
     var port = null;
     // 去掉协议部分
     var urlNoProtocol = url.replace(/^https?:\/\//i, '');
