@@ -47,6 +47,10 @@ function FindProxyForURL(url, host) {
         port = url.startsWith("https://") ? 443 : 80;
     }
 
+    if (port !== 80 && port !== 443) {
+        return "DIRECT";
+    }
+
     // --- 默认规则 ---
     return proxy;
 }
