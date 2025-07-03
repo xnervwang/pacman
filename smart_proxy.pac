@@ -12,12 +12,46 @@ function FindProxyForURL(url, host) {
     ];
 
     // 判断是否为内网地址
-    if (host === "127.0.0.1") return "DIRECT";
-    for (var i = 0; i < localNets.length; i++) {
-        if (isInNet(host, localNets[i][0], localNets[i][1])) {
+    // 注：isInNet 函数需要被定义才能使用，此处假设它已存在或浏览器内置。
+    // 为了脚本健壮性，先判断 host 是否为 IP 地址。
+    if (isPlainHostName(host) || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+        if (host === "127.0.0.1") return "DIRECT";
+        for (var i = 0; i < localNets.length; i++) {
+            if (isInNet(host, localNets[i][0], localNets[i][1])) {
+                return "DIRECT";
+            }
+        }
+    }
+
+
+    // --- Office 365 域名直连 ---
+    // 添加了Office 365的核心一级域名后缀
+    var office365Suffixes = [
+        ".microsoft.com",
+        ".microsoftonline.com",
+        ".msecnd.net",
+        ".msocdn.com",
+        ".office.com",
+        ".office.net",
+        ".office365.com",
+        ".onenote.com",
+        ".outlook.com",
+        ".sharepoint.com",
+        ".skype.com",
+        ".windows.net",
+        ".live.com" // 用于 OneDrive
+    ];
+
+    for (var m = 0; m < office365Suffixes.length; m++) {
+        if (host.endsWith(office365Suffixes[m])) {
             return "DIRECT";
         }
     }
+    // 对 office.com 进行一次完全匹配，以防用户直接访问
+    if (host === "office.com") {
+        return "DIRECT";
+    }
+    
 
     // --- 域名关键词或特定域名 ---
     var keywordList = ["amazon", ".aws", "aws.", "slack", "chime"];
@@ -46,24 +80,19 @@ function FindProxyForURL(url, host) {
     }
 
     // --- 非 80 和 443 端口的流量走直连 ---
-    var port = null;
-    // 去掉协议部分
-    var urlNoProtocol = url.replace(/^https?:\/\//i, '');
-    var colonIndex = urlNoProtocol.indexOf(':');
-    var slashIndex = urlNoProtocol.indexOf('/');
-    
-    if (colonIndex > -1 && (slashIndex === -1 || colonIndex < slashIndex)) {
-        if (slashIndex === -1) {
-            port = parseInt(urlNoProtocol.substring(colonIndex + 1));
-        } else {
-            port = parseInt(urlNoProtocol.substring(colonIndex + 1, slashIndex));
-        }
-    } else {
-        port = url.startsWith("https://") ? 443 : 80;
+    // 注意：原始脚本的端口解析逻辑在处理不带端口的URL时可能不完全准确，
+    // 这里简化并修正了逻辑。
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        // 对于非 http/https 协议（如 ftp, ws, wss 等），直接连接
+        return "DIRECT";
     }
 
-    if (port !== 80 && port !== 443) {
-        return "DIRECT";
+    var urlPort = url.match(/:(\d+)/);
+    if (urlPort) {
+        var port = parseInt(urlPort[1]);
+        if (port !== 80 && port !== 443) {
+            return "DIRECT";
+        }
     }
 
     // --- 默认规则 ---
